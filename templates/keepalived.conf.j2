@@ -1,0 +1,67 @@
+{% set global_defs = (in_keepalived.global_defs | default({})) %}
+
+global_defs {
+  router_id {{ global_defs.router_id | default(inventory_hostname) }}
+}
+
+{% for inst in (in_keepalived.instances | default([])) %}
+vrrp_instance {{ inst.name }} {
+  state {{ inst.state | default('BACKUP') }}
+  interface {{ inst.interface }}
+  virtual_router_id {{ inst.virtual_router_id }}
+  priority {{ inst.priority }}
+  advert_int {{ inst.advert_int | default(1) }}
+
+{% set unicast = inst.unicast | default({}) %}
+{% if unicast.enabled | default(false) | bool %}
+{% set unicast_peers = unicast.peers | default([]) %}
+{% if (unicast_peers | length) == 0 %}
+{% set peers_group = unicast.peers_group | default(in_keepalived.unicast_peers_group | default('')) %}
+{% if (peers_group | length) > 0 %}
+{% set source_hosts = groups[peers_group] | default([]) %}
+{% else %}
+{% set source_hosts = play_hosts | default([]) %}
+{% endif %}
+{% set unicast_peers = (
+  (source_hosts | difference([inventory_hostname]))
+  | map('extract', hostvars, 'ansible_default_ipv4')
+  | select('defined')
+  | map(attribute='address')
+  | select('defined')
+  | list
+) %}
+{% endif %}
+{% if (unicast_peers | length) > 0 %}
+{% set unicast_src_ip = unicast.src_ip | default(ansible_default_ipv4.address | default('')) %}
+{% if (unicast_src_ip | default('')) | length > 0 %}
+  unicast_src_ip {{ unicast_src_ip }}
+{% endif %}
+  unicast_peer {
+{% for peer in unicast_peers %}
+    {{ peer }}
+{% endfor %}
+  }
+{% endif %}
+{% endif %}
+
+{% if inst.authentication is defined %}
+  authentication {
+    auth_type {{ inst.authentication.auth_type | default('PASS') }}
+    auth_pass {{ inst.authentication.auth_pass }}
+  }
+{% endif %}
+
+  virtual_ipaddress {
+{% for vip in inst.virtual_ipaddresses | default([]) %}
+    {{ vip }}
+{% endfor %}
+  }
+
+{% if (inst.extra_lines | default([]) | length) > 0 %}
+{% for line in inst.extra_lines %}
+  {{ line }}
+{% endfor %}
+{% endif %}
+}
+
+{% endfor %}

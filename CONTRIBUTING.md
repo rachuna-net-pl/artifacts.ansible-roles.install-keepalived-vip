@@ -5,7 +5,10 @@ Dziękujemy za zainteresowanie i chęć wniesienia wkładu do tego projektu! Doc
 ## Jak wnieść wkład
 
 1. **Zforkuj repozytorium**: Stwórz kopię tego repozytorium na swoim koncie GitLab, klikając przycisk „Fork” na górze.
-2. **Sklonuj swojego forka**: Sklonuj zforkowane repozytorium na swój lokalny komputer.
+2. **Sklonuj swojego forka**: Sklonuj zforkowane repozytorium na swój lokalny komputer za pomocą komendy:
+   ```bash
+   git clone https://gitlab.com/twoja-nazwa-użytkownika/nazwa-projektu.git
+   ```
 3. **Utwórz gałąź**: Stwórz nową gałąź dla swoich zmian:
    ```bash
    git checkout -b twoja-nazwa-gałęzi
@@ -29,7 +32,7 @@ Prosimy o szacunek i uwzględnienie innych podczas wniesienia wkładu. Wszyscy w
 
 ## Zgłaszanie problemów
 
-Jeśli napotkasz błędy, masz sugestie lub coś jest niezrozumiałe, otwórz zgłoszenie w sekcji `Issues` repozytorium. Podczas zgłaszania problemu prosimy o podanie:
+Jeśli napotkasz błędy, masz sugestie lub coś jest niezrozumiałe, otwórz zgłoszenie w sekcji [Issues](https://gitlab.com/nazwa-projektu/issues) repozytorium. Podczas zgłaszania problemu prosimy o podanie:
 
 - Jasnego opisu problemu.
 - Kroków do odtworzenia problemu.

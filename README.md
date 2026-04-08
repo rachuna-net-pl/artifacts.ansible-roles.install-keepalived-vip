@@ -70,3 +70,4 @@ Projekt licencjonowany jest na warunkach [Licencji MIT](LICENSE).
 # Author Information
 ### &emsp; Maciej Rachuna
 # <img src="docs/logo.png" alt="rachuna-net.pl" height="100"/>
+

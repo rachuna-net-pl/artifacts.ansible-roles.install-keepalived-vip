@@ -4,6 +4,14 @@
     name: keepalived
     state: present
 
+- name: "Ensure keepalived_script user exists"
+  when: (in_keepalived.vrrp_scripts | default([])) | length > 0
+  ansible.builtin.user:
+    name: keepalived_script
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
 - name: "Ensure keepalived config directory exists"
   ansible.builtin.file:
     path: "{{ var_keepalived_config_path | dirname }}"
@@ -12,14 +20,11 @@
     group: root
     mode: "0755"
 
-- name: "Validate unicast peers for instances"
-  ansible.builtin.assert:
-    that:
-      - not (unicast.enabled | default(false) | bool) or (unicast_peers | length) > 0
-    fail_msg: >-
-      keepalived-vip: unicast enabled for {{ inst.name }} but no peers found.
-      Set unicast.peers, unicast.peers_group or in_keepalived.unicast_peers_group,
-      or run the play with at least 2 hosts so auto-discovery from facts can work.
+- name: "Compute unicast peers for instances"
+  no_log: true
+  ansible.builtin.set_fact:
+    _keepalived_unicast_peers: >-
+      {{ _keepalived_unicast_peers | default({}) | combine({inst.name: unicast_peers}) }}
   vars:
     unicast: "{{ inst.unicast | default({}) }}"
     peers_group: "{{ unicast.peers_group | default(in_keepalived.unicast_peers_group | default('')) }}"
@@ -41,6 +46,19 @@
           | list
         )
       }}
+  loop: "{{ in_keepalived.instances | default([]) }}"
+  loop_control:
+    loop_var: inst
+
+- name: "Validate unicast peers for instances"
+  no_log: true
+  ansible.builtin.assert:
+    that:
+      - not (inst.unicast.enabled | default(false) | bool) or (_keepalived_unicast_peers[inst.name] | length) > 0
+    fail_msg: >-
+      keepalived-vip: unicast enabled for {{ inst.name }} but no peers found.
+      Set unicast.peers, unicast.peers_group or in_keepalived.unicast_peers_group,
+      or run the play with at least 2 hosts so auto-discovery from facts can work.
   loop: "{{ in_keepalived.instances | default([]) }}"
   loop_control:
     loop_var: inst

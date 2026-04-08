@@ -3,3 +3,4 @@ molecule_test_dev.sh
 **/__pycache__/
 .env
 .yamllint
+.examples

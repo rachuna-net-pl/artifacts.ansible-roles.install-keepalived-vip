@@ -2,6 +2,52 @@
 
 Ansible Role konfiguracją wirtualny adresu IP (VIP).
 
+## Architektura / Flow
+
+```mermaid
+flowchart TD
+    Start([Start roli]) --> Install[Install keepalived<br/>ansible.builtin.package]
+    Install --> UserCheck{vrrp_scripts<br/>zdefiniowane?}
+    UserCheck -->|tak| CreateUser[Utworz uzytkownika<br/>keepalived_script]
+    UserCheck -->|nie| MkDir
+    CreateUser --> MkDir[Utworz katalog<br/>/etc/keepalived/]
+    MkDir --> ComputePeers[Compute unicast peers<br/>set_fact: _keepalived_unicast_peers]
+
+    ComputePeers --> PeersLogic{Priorytet<br/>rozwiazania peerow}
+    PeersLogic -->|1| ExplicitPeers[unicast.peers<br/>jawna lista IP]
+    PeersLogic -->|2| GroupPeers[unicast.peers_group<br/>lub in_keepalived.unicast_peers_group]
+    PeersLogic -->|3| PlayHosts[play_hosts<br/>fallback]
+
+    ExplicitPeers --> Validate
+    GroupPeers --> ExtractIP[Extract ansible_default_ipv4<br/>z hostvars, usun self]
+    PlayHosts --> ExtractIP
+    ExtractIP --> Validate[Validate unicast peers<br/>assert length > 0]
+
+    Validate -->|fail| Error([FAIL: no peers found])
+    Validate -->|ok| Render[Render keepalived.conf<br/>template + validate -t -f]
+
+    Render --> Notify[Notify handler<br/>Restart keepalived]
+    Notify --> ServiceMgr{ansible_service_mgr}
+    ServiceMgr -->|systemd| Systemd[systemd: enable + start<br/>daemon_reload]
+    ServiceMgr -->|inne| Skip[Debug: skip enable/start]
+    Systemd --> End([Koniec])
+    Skip --> End
+
+    style ComputePeers fill:#e1f5ff
+    style Validate fill:#fff3cd
+    style Error fill:#f8d7da
+    style Render fill:#d4edda
+```
+
+### Handlery
+
+```mermaid
+flowchart LR
+    Trigger[Notify: Restart keepalived] --> Listen{ansible_service_mgr}
+    Listen -->|systemd| H1[ansible.builtin.systemd<br/>state: restarted]
+    Listen -->|inne| H2[ansible.builtin.service<br/>state: restarted]
+```
+
 ## Wymagania
 
 - Debian/Ubuntu lub RHEL/Alma/Rocky (EL)
